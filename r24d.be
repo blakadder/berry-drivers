@@ -246,13 +246,13 @@ class micradar : Driver
               if msg[2] == 0x80
               # write active reading to buffer if they fit keys in buffer
                 if msg[3] == 0x0A
-                  print("MicRadar: Raw =", msg)
                   self.parse_message(msg)
                 else
                 var converted = msg[3] & 0x7F
                   if self.buffer.find(converted) != nil 
                     if self.buffer[converted] != self.ident_data(msg) 
                     self.buffer[converted] = self.ident_data(msg) 
+                    self.parse_message(msg)
                     end
                   end
                 end

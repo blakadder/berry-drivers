@@ -205,7 +205,7 @@ class micradar : Driver
     # print("MicR:", result)
     log(result, 3)
     var pubtopic = "stat/" + topic + "/SENSOR"
-    mqtt.publish(pubtopic, result)
+    mqtt.publish(pubtopic, result, false)
   end
 
   def parse_productinfo(msg)

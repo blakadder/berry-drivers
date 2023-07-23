@@ -7,6 +7,7 @@
 # Does not include "Underlying Open function" mode
 
 import string
+import mqtt
 
 var topic = tasmota.cmd('Status ', true)['Status']['Topic']
 
@@ -193,7 +194,6 @@ class micradar : Driver
   end
 
   def parse_message(msg)
-    import mqtt
     var data  = self.ident_data(msg)
     var field = self.word[msg[2]][msg[3]][0] 
     var result 
@@ -204,12 +204,17 @@ class micradar : Driver
     end
     # print("MicR:", result)
     log(result, 3)
-    var pubtopic = "stat/" + topic + "/SENSOR"
+    var pubtopic = "stat/" + topic + "/RESULT"
     mqtt.publish(pubtopic, result, false)
   end
 
+  def publish_for_ha(msg)
+    var pubtopic = "tele/" + topic + "/SENSOR"
+    var mesg = string.format("{\"MicRadar\":{\"Presence\":\"%s\",\"Activity\":\"%s\",\"Body Movement Parameter\":%d,\"Movement\":\"%s\"}}", self.buffer[0x01],self.buffer[0x02],self.buffer[0x03],self.buffer[0x0B])
+    mqtt.publish(pubtopic, mesg, false, 0, size(mesg))
+  end
+
   def parse_productinfo(msg)
-    import mqtt
     var field = self.word[msg[2]][msg[3]] 
     var data  = msg[6..5+msg[5]].asstring()
     var result = string.format("{\"MicRadar\":{\"%s\":\"%s\"}", field, data)
@@ -253,6 +258,7 @@ class micradar : Driver
                     if self.buffer[converted] != self.ident_data(msg) 
                     self.buffer[converted] = self.ident_data(msg) 
                     self.parse_message(msg)
+                    self.publish_for_ha(msg)
                     end
                   end
                 end

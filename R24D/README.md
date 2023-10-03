@@ -5,7 +5,7 @@
 R24D is a low cost 24Ghz mmWave radar with presence and movement detection.
 
 Tested with:
-- MicRadar R24DVD1 - [AliExpress]{https://s.click.aliexpress.com/e/_DEaKFRN)
+- MicRadar R24DVD1 - [AliExpress](https://s.click.aliexpress.com/e/_DEaKFRN)
 - Seeedstudio MR24HPC1 - [SeeedStudio store](https://www.seeedstudio.com/24GHz-mmWave-Sensor-Human-Static-Presence-Module-Lite-p-5524.html)
 
 Module uses 2.0 headers. I've purchased [2.0 Dupont cables (2x3P)](https://www.aliexpress.com/item/1005004327111557.html?aff_fcid=d990ff4f1a7a4e808378e32a40aecad3-1690136370877-04300-_DcwFFoX&tt=CPS_NORMAL&aff_fsk=_DcwFFoX&aff_platform=shareComponent-detail&sk=_DcwFFoX&aff_trace_key=d990ff4f1a7a4e808378e32a40aecad3-1690136370877-04300-_DcwFFoX&terminal_id=3f8c776975fd455ba956809c02d71a91&afSmartRedirect=y) to just plug into the radar module.

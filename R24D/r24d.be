@@ -188,6 +188,7 @@ class micradar : Driver
   def restart()
     self.ser.write(self.encode("01", "02", "0F"))
     print("Reset command sent")
+    tasmota.set_timer(3000, /-> self.get_config())
   end
     
   def publish2log(result, lvl)
@@ -268,7 +269,7 @@ class micradar : Driver
   end
 
 # grab options so the configuration buffer gets updated, triggered on init done message  
-  def get_config(msg)
+  def get_config()
     self.send("05","87","0F")
     self.send("05","88","0F")
     self.send("80","8A","0F")
@@ -363,6 +364,7 @@ class micradar : Driver
   end
   
   def json_append()
+    self.get_config()
 	  var msg = f",\"{self.sensorname}\":{json.dump(self.buffer)}"
     tasmota.response_append(msg)
   end

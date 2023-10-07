@@ -6,19 +6,19 @@ R24D is a low cost 24Ghz mmWave radar with presence and movement detection.
 
 Tested with:
 - MicRadar R24DVD1 - [AliExpress](https://s.click.aliexpress.com/e/_DEaKFRN)
-- Seeedstudio MR24HPC1 - [SeeedStudio store](https://www.seeedstudio.com/24GHz-mmWave-Sensor-Human-Static-Presence-Module-Lite-p-5524.html)
+- Seeedstudio MR24HPC1 - [SeeedStudio store](https://www.seeedstudio.com/24GHz-mmWave-Sensor-Human-Static-Presence-Module-Lite-p-5524.html?sensecap_affiliate=jo7uUTK)
 
 Module uses 2.0 headers. I've purchased [2.0 Dupont cables (2x3P)](https://www.aliexpress.com/item/1005004327111557.html?aff_fcid=d990ff4f1a7a4e808378e32a40aecad3-1690136370877-04300-_DcwFFoX&tt=CPS_NORMAL&aff_fsk=_DcwFFoX&aff_platform=shareComponent-detail&sk=_DcwFFoX&aff_trace_key=d990ff4f1a7a4e808378e32a40aecad3-1690136370877-04300-_DcwFFoX&terminal_id=3f8c776975fd455ba956809c02d71a91&afSmartRedirect=y) to just plug into the radar module.
 
 Set Serial Tx and Serial Rx pins in Tasmota to the pins connected to RX and TX pins on the module.
 
-Driver supports all standard functions. Underlying Open protocol is not added and will probably be a separate driver file if it gets implemented.
+Driver supports all standard functions. Underlying Open protocol and scene configuration commands are not included because those are advanced commands but can still be issued using `RadarSend` command.
 
-Driver file is `r24d.be`.
+Load driver from autoexec.be with `load('r24d.be')`.
 
 ## Commands
 
-### RadarDelay
+### SetDelay
 
 Set delay time for no presence state
 
@@ -34,11 +34,7 @@ Set delay time for no presence state
 | `7` | 30min |
 | `8` | 60min |
 
-### RadarRestart
-
-Restarts radar module.
-
-### RadarSensitivity
+### SetSensitivity
 
 Set detection distance for static state
 
@@ -48,7 +44,7 @@ Set detection distance for static state
 | `2` | Level 2 | 3m
 | `3` | Level 3 | 4m
 
-### RadarScene
+### SetScene
 
 Set predefined scene mode
 
@@ -58,3 +54,11 @@ Set predefined scene mode
 | `2` | Bedroom | 3.5m - 4m
 | `3` | Bathroom | 2.5m - 3m
 | `4` | Area detection | 3m - 3.5m
+
+### RadarRestart
+
+Sends restart command to the radar module.
+
+### RadarSend
+
+`control_word,comand_word,hex_value` is the expected format. If value is missing it `0F` will be entered instead. There is zero error checking and if something is wrong it will fail silently

@@ -364,7 +364,6 @@ class micradar : Driver
   end
   
   def json_append()
-    self.get_config()
 	  var msg = f",\"{self.sensorname}\":{json.dump(self.buffer)}"
     tasmota.response_append(msg)
   end

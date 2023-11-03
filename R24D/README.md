@@ -62,3 +62,15 @@ Sends restart command to the radar module.
 ### RadarSend
 
 `control_word,comand_word,hex_value` is the expected format. If value is missing it `0F` will be entered instead. There is zero error checking and if something is wrong it will fail silently
+
+## Body Movement Parameter
+
+Explaining body movement parameter values
+
+| value | description | motion 
+| | | 
+| 0% | unmanned | unmanned environment
+| 1% | still (sleep) | Only breathing without limb movement
+| 2%-30% | micro-motion | Only slight head or limb movement
+| 31%-60% | walking/rapid body movements | slower motion
+| 61%-100% | running/close range | rapid motion

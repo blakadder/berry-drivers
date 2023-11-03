@@ -1,6 +1,7 @@
 #-----------------------------------------
-24Ghz mmWave radar Tasmota driver v1.0 written in Berry | code by blakadder
-Works with: Seeedstudio MR24HPC1, MicRadar R24DVD1
+v0.01
+60Ghz mmWave fall radar Tasmota driver  written in Berry | code by blakadder
+Works with: Seeedstudio MR60FDA1, MicRadar R60AFD1
 source from https://github.com/blakadder/berry-drivers
 released under GPL-3.0 license
 -#
@@ -13,13 +14,11 @@ var topic = tasmota.cmd('Status ', true)['Status']['Topic']
 
 class micradar : Driver
 
-  static sensorname = "R24DVD1"
+  static sensorname = "R60AFD1"
   static buffer = {}
   static cfg_buffer = {}
-  static op_buffer = {}
   static header = bytes("5359")
   static endframe = "5443"
-  static opbool
 
   # tables of values and their names, edit to translate to another language
 
@@ -32,47 +31,26 @@ class micradar : Driver
     0x02: "Active"
   }
 
-  static wduration = { # duration from "presence" to "no presence", default is 30s
-    0x00: "0s",
-    0x01: "10s",
-    0x02: "30s", # default setting
-    0x03: "1m",
-    0x04: "2m",
-    0x05: "5m",
-    0x06: "10m",
-    0x07: "30m",
-    0x08: "60m",
-  }
-
   static winitstatus = {
     0x00: "Complete",
     0x01: "Incomplete",
-    0x0F: "Completed",
+    0x0F: "Completed"
   }
 
-  static wmovement = {
+  static wfailurereport = {
     0x00: "None",
-    0x01: "Approaching",
-    0x02: "Leaving"
+    0x01: "Radar chip error",
+    0x02: "Encryption error"
+  }
+
+  static wfall = {
+    0x00: "None",
+    0x01: "Fallen"
   }
 
   static woccupancy = {
     0x00: "Unoccupied",
     0x01: "Occupied"
-  }
-
-  static wscenemode = {
-    0x00: "Not Set",
-    0x01: "Living Room",
-    0x02: "Bedroom",
-    0x03: "Bathroom",
-    0x04: "Area Detection"
-  }
-  static wsensitivity = {
-    0x00: "None",
-    0x01: "2m",
-    0x02: "3m",
-    0x03: "4m" # default setting
   }
 
   static wprotocolmode = {
@@ -108,65 +86,90 @@ class micradar : Driver
         0xA2: { "name": "Product ID" },
         0xA3: { "name": "Hardware Model" },
         0xA4: { "name": "Firmware Version" },
-        0xA5: { "name": "Protocol Type",
-                "properties": micradar.wprotocolmode }
+        0x04: { "name": "Firmware Version" }
               }
           },
     0x05: {
-      "name": "Status",
+      "name": "Information",
       "word": {
         0x01: { "name": "Initialization",
                 "properties": micradar.winitstatus },
-        0x07: { "name": "Scene Mode",
-                "properties": micradar.wscenemode },
-        0x08: { "name": "Sensitivity",
-                "properties": micradar.wsensitivity }
+        0x02: { "name": "Radar Failure",
+                "properties": micradar.wfailurereport },
+        0x03: { "name": "Working Hours" },
+        0x07: { "name": "Scenario" },
+              }
+            },
+    0x06: {
+      "name": "Radar Installation",
+      "word": {
+        0x01: { "name": "Installation angle setting" },
+        0x02: { "name": "Installation height setting" },
+        0x03: { "name": "Automatic height measurement" }
               }
           },
     0x80: {
       "name": "Human",
       "word": {
+        0x00: { "name": "Presence monitoring",
+                "properties": micradar.wonoff,
+                "config": true },
         0x01: { "name": "Presence",
                 "properties": micradar.woccupancy },
         0x02: { "name": "Activity",
                 "properties": micradar.wactivity },
-        0x03: { "name": "Body Movement Parameter" },
-        0x0A: { "name": "Unoccupied Delay",
-                "properties": micradar.wduration,
+        0x03: { "name": "Body Movement" },
+        0x0D: { "name": "Stationary horizontal distance",
                 "config": true },
-        0x0B: { "name": "Motion",
-                "properties": micradar.wmovement },
-              }
+        0x0E: { "name": "Moving horizontal distance",
+                "config": true },
+        0x12: { "name": "Non-presence time setting",
+                "config": true },
+            }
           },
-    0x08: {
-      "name": "Open Function",
+    0x83: {
+      "name": "Fall Detection",
       "word": {
-        0x00: { "name": "Switch",
+        0x00: { "name": "Fall monitoring",
                 "properties": micradar.wonoff,
                 "config": true },
-        0x01: { "name": "Report",
-                "properties": ["Static Energy", "Static Distance", "Motion Energy", "Motion Distance", "Movement Speed"] },
-        0x06: { "name": "Motion",
-                "properties": micradar.wmovement },
-        0x07: { "name": "Body Movement Parameter" },
-        0x08: { "name": "Presence Energy Threshold" },
-        0x09: { "name": "Motion Amplitude Trigger Threshold",
-        "config": true },
-        0x0A: { "name": "Presence Distance",
-        "config": true },
-        0x0B: { "name": "Motion Distance",
-        "config": true },
-        0x0C: { "name": "Motion Trigger Time",
-        "config": true },
-        0x0C: { "name": "Motion to Rest Time",
-        "config": true },
-        0x0D: { "name": "Unoccupied State Time",
-        "config": true }
+        0x01: { "name": "State",
+                "properties": micradar.wfall },
+        0x05: { "name": "Still state",
+                "properties": micradar.wbool },
+        0x0A: { "name": "Still time setting",
+                "config": true },
+        0x0B: { "name": "Still monitoring",
+                "properties": micradar.wonoff,
+                "config": true },
+        0x0D: { "name": "Fall detection sensitivity",
+                "config": true },
+        0x0C: { "name": "Fall duration setting",
+                "config": true },
+        0x0E: { "name": "Height proportion report" },
+        0x0F: { "name": "Height accumulation time",
+                "config": true },
+        0x11: { "name": "Fall breaking height setting",
+                "config": true },
+        0x12: { "name": "Trajectory point"},
+        0x13: { "name": "Trajectory report frequency",
+                "config": true },
+        0x15: { "name": "Trajectory point monitoring",
+                "properties": micradar.wonoff,
+                "config": true },
               }
-          },
-      }
-
+            }
+        }
+    
   var ser  # create serial port object
+
+  # intialize the serial port, if unspecified Tx/Rx are GPIO 1/3
+  def init(tx, rx)
+    if !tx   tx = gpio.pin(gpio.TXD) end
+    if !rx   rx = gpio.pin(gpio.RXD) end
+    self.ser = serial(rx, tx, 115200, serial.SERIAL_8N1)
+    tasmota.add_driver(self)
+    end
 
   def write2buffer(l, target)
     target.insert(l.find("name"),l.find("properties") != nil ? l["properties"][0x00] : 0)
@@ -175,7 +178,7 @@ class micradar : Driver
   # populate buffer and ctl_buffer with control words from word table and default values (0x00)
   def buffer_init()
     for k : self.word.keys()
-      if k == 0x05
+      if k == 0x05 || k == 0x06
       self.cfg_buffer.insert(self.word[k].find("name"),{})
         for l : self.word[k]["word"]
           self.write2buffer(l, self.cfg_buffer[self.word[k]["name"]])
@@ -190,42 +193,11 @@ class micradar : Driver
             self.write2buffer(l, self.cfg_buffer[self.word[0x05]["name"]])            
           else
             self.write2buffer(l, self.buffer[self.word[k]["name"]])
-          end
-        end 
-      end
+         end
+        end
+      end 
     end
-  end
-
-  # def op_buffer_init()
-  #   for l : self.word[0x08]["word"].keys()
-  #     if k == 0x05
-  #     self.cfg_buffer.insert(self.word[k].find("name"),{})
-  #       for l : self.word[k]["word"]
-  #         self.write2buffer(l, self.cfg_buffer[self.word[k]["name"]])
-  #       end
-  #     end
-  #   end
-  #   for k : self.word.keys()
-  #     if k > 127
-  #       self.buffer.insert(self.word[k].find("name"),{})
-  #       for l : self.word[k]["word"]
-  #         if l.find("config") != nil
-  #           self.write2buffer(l, self.cfg_buffer[self.word[0x05]["name"]])            
-  #         else
-  #           self.write2buffer(l, self.buffer[self.word[k]["name"]])
-  #         end
-  #       end 
-  #     end
-  #   end
-  # end  
-
-  # intialize the serial port, if unspecified Tx/Rx are GPIO 1/3
-  def init(tx, rx)
-    if !tx   tx = gpio.pin(gpio.TXD) end
-    if !rx   rx = gpio.pin(gpio.RXD) end
-    self.ser = serial(rx, tx, 115200, serial.SERIAL_8N1)
-    tasmota.add_driver(self)
-    end
+  end  
 
   def restart()
     self.ser.write(self.encode("01", "02", "0F"))
@@ -284,10 +256,10 @@ class micradar : Driver
     var payload_bin = self.encode(str(ctrlword), str(cmndword), str(data))
     self.ser.flush()
     self.ser.write(payload_bin)
-    print("MicR: Sent =", str(payload_bin))
+    # print("MicR: Sent =", str(payload_bin))
     logr = f"command payload {payload_bin} sent"
     end
-    self.publish2log(logr, 2)
+    self.publish2log(logr, 3)
   end
 
   # identify data and its type from micradar.word table
@@ -312,10 +284,20 @@ class micradar : Driver
 
 # grab options so the configuration buffer gets updated, triggered on init done message  
   def get_config()
-    self.send("08","00","0F")
-    self.send("05","87","0F")
-    self.send("05","88","0F")
-    self.send("80","8A","0F")
+    self.send("80","80","0F")
+    self.send("83","8A","0F")
+    self.send("83","8B","0F")
+    self.send("83","8C","0F")
+    self.send("83","8D","0F")
+    self.send("83","8F","0F")
+  end
+
+  def get_version()
+    self.send("02","A1","0F")
+    self.send("02","A2","0F")
+    self.send("02","A3","0F")
+    self.send("02","A4","0F")
+    self.send("04","04","0F")
   end
 
   def parse_productinfo(msg)
@@ -369,38 +351,6 @@ class micradar : Driver
     end  
   end
 
-  def calc_distance(d)
-    d = real(d)*0.5 # multiplier 50 because distance is in 0.5m increments 
-    return d
-  end
-
-  def parse_openprotocol(msg)
-    # 0: 1B Presence energy value
-    # 1: 1B Static distance
-    # 2: 1B Motion energy
-    # 3: 1B Movement distance
-    # 4: 1B Speed information
-    var field   = self.id_name(msg)
-    var cw      = self.id_cw(msg)
-    var data = []
-    var result = {}
-      for i:6..5+msg[5]
-       data.push(msg.get(i,1)) # push current iteration to list
-    end
-    data.setitem(1,self.calc_distance(data[1])) # calculate static distance
-    data.setitem(3,self.calc_distance(data[3])) # calculate movement distance
-    data.setitem(4,data[4] == 0 ? 0 : self.calc_distance(data[4]-10)) # calculate movement distance
-    for i : 0 .. size(data)-1
-      result.insert(self.word[msg[2]]["word"][msg[3]]["properties"][i],data[i])
-    end
-    # print("OP result",result)    
-    micradar.op_buffer = result
-    self.publish2log(json.dump(result), 2)
-    var pubtopic = "tele/" + topic + "/OPENPROTOCOL"
-
-    mqtt.publish(pubtopic, json.dump(result), false)
-  end
-
   # read serial port
   def every_50ms()
     if self.ser.available() > 0
@@ -421,20 +371,13 @@ class micradar : Driver
                 msg.set(3,(cmndword - 128),1)  
               end 
               #  print("MicR: msg =", msg)
-              if msg[2] == 0x05 || self.word[msg[2]]['word'][msg[3]].find("config")
+              if msg[2] == 0x05 || msg[2] == 0x06 || self.word[msg[2]]['word'][msg[3]].find("config")
                 self.parse_config(msg)
                 if msg[3] == 0x01
                   self.get_config()
                 end
-              elif msg[2] == 0x08 # Open reporting
-                print("Open report received", msg)
-                  if msg[5] == 0x05
-                    self.parse_openprotocol(msg)
-                  if msg[3] == 0x00 self.opbool = msg[6] end
-                    else
-                    self.parse_message(msg)
-                  end
               else
+              # print("MicR: msg =", msg)
                 self.parse_message(msg)
               end
             end
@@ -472,57 +415,9 @@ radar=micradar()
 tasmota.add_driver(radar)
 radar.buffer_init()
 
-def set_scene(cmd, idx, payload, payload_json)
-  print(type(payload))
-  payload = int(payload)
-  var opt = [1,2,3,4]
-  var ctl = "05"
-  var cmw = "07"
-  var val = "0F"
-  if opt.find(int(payload)) != nil
-    val = f"{payload:.2i}"
-  else
-    cmw = "87"
-    log("MicR: Set scene. Accepted value range is 1 - 4. No payload shows current configuration")
-  end
-  radar.send(ctl,cmw,val)
-  tasmota.resp_cmnd_done()
-end
-
-tasmota.add_cmd('SetScene', set_scene)
-
-def set_sensitivity(cmd, idx, payload, payload_json)
-  var opt = [1,2,3]
-  var ctl = "05"
-  var cmw = "08"
-  var val = "0F"
-  if opt.find(int(payload)) != nil
-    val = f"{payload:.2i}"
-  else
-    cmw = "88"
-    log("MicR: Set unoccupancy delay. Accepted value range is 0 - 8. No payload shows current configuration")
-  end
-  radar.send(ctl,cmw,val)
-  tasmota.resp_cmnd_done()
-end
-
-tasmota.add_cmd('SetSensitivity', set_sensitivity)
-
-def set_delay(cmd, idx, payload, payload_json)
-  var ctrlword = "80"
-  var cmndword = "0A"
-  var val = "0F"
-  if int(payload) < 7 && int(payload) >= 0
-    val = f"{payload:.2i}"
-  else
-    cmndword = int(cmndword) + 128
-    log("MicR: Set unoccupancy delay. Accepted value range is 0 - 8. No payload shows current configuration")
-  end
-  radar.send(ctrlword, cmndword, val)
-  tasmota.resp_cmnd_done()
-end
-  
-tasmota.add_cmd('SetDelay', set_delay)
+#- 
+Add commands to use in Tasmota
+-#
 
 def radar_send(cmd, idx, payload, payload_json)
   var data = string.split(payload, ",")
@@ -530,7 +425,7 @@ def radar_send(cmd, idx, payload, payload_json)
   radar.send(data[0], data[1], data[2])
   tasmota.resp_cmnd_done()
 end
-  
+
 tasmota.add_cmd('RadarSend', radar_send)
 
 def restart_cmnd(cmd, idx, payload, payload_json)
@@ -540,4 +435,124 @@ end
 
 tasmota.add_cmd('RadarRestart', restart_cmnd)
 
+def switch_presence(cmd, idx, payload, payload_json)
+  var ctl = "80"
+  var cmw = "00"
+  var val = "0F"
+  if payload == "1" || payload == "ON" || payload == "off"
+    val = "01"
+  elif payload == "0" || payload == "OFF" || payload == "off"
+    val = "00"
+  else
+    cmw = "80"
+    log("MicRadat: Use 1/ON to turn on and 0/OFF to turn off. No payload shows current configuration")
+  end
+  radar.send(ctl,cmw,val)
+  tasmota.resp_cmnd_done()
+end
+
+tasmota.add_cmd('RadarPresence', switch_presence)
+
+def switch_fall(cmd, idx, payload, payload_json)
+  var ctl = "83"
+  var cmw = "00"
+  var val = "0F"
+  if payload == "1" || payload == "ON" || payload == "off"
+    val = "01"
+  elif payload == "0" || payload == "OFF" || payload == "off"
+    val = "00"
+  else
+    cmw = "80"
+    log("MicRadat: Use 1/ON to turn on and 0/OFF to turn off. No payload shows current configuration")
+  end
+  radar.send(ctl,cmw,val)
+  tasmota.resp_cmnd_done()
+end
+
+tasmota.add_cmd('RadarFall', switch_fall)
+
+def switch_residence(cmd, idx, payload, payload_json)
+  var ctl = "83"
+  var cmw = "0B"
+  var val = "0F"
+  if payload == "1" || payload == "ON" || payload == "off"
+    val = "01"
+  elif payload == "0" || payload == "OFF" || payload == "off"
+    val = "00"
+  else
+    cmw = "8B"
+    log("MicRadat: Use 1/ON to turn on and 0/OFF to turn off. No payload shows current configuration")
+  end
+  radar.send(ctl,cmw,val)
+  tasmota.resp_cmnd_done()
+end
+
+tasmota.add_cmd('RadarResidence', switch_residence)
+
+def set_sensitivity(cmd, idx, payload, payload_json)
+  var opt = [1,2,3]
+  var ctl = "83"
+  var cmw = "0D"
+  var val = "0F"
+  if opt.find(int(payload)) != nil
+    val = f"{payload:.2i}"
+  else
+    cmw = "8D"
+    log("MicR: Set fall detection sensitivity. Accepted value range is 0 - 3. No payload shows current configuration")
+  end
+  radar.send(ctl,cmw,val)
+  tasmota.resp_cmnd_done()
+end
+
+tasmota.add_cmd('SetSensitivity', set_sensitivity)
+
+def set_falltime(cmd, idx, payload, payload_json)
+  var ctl = "83"
+  var cmw = "0C"
+  var val = "0F"
+  if int(payload) > 4 || int(payload) < 181
+    val = f"{payload:.2i}"
+  else
+    cmw = "8C"
+    log("MicR: Set fall time in seconds. Accepted value range is 5 - 180. No payload shows current configuration")
+  end
+  radar.send(ctl,cmw,val)
+  tasmota.resp_cmnd_done()
+end
+
+tasmota.add_cmd('SetFalltime', set_falltime)
+
+def set_residencetime(cmd, idx, payload, payload_json)
+  var ctl = "83"
+  var cmw = "0A"
+  var val = "0F"
+  if int(payload) > 59 || int(payload) < 3601
+    val = f"{payload:.2i}"
+  else
+    cmw = "8A"
+    log("MicR: Set fall time in seconds. Accepted value range is 5 - 180. No payload shows current configuration")
+  end
+  radar.send(ctl,cmw,val)
+  tasmota.resp_cmnd_done()
+end
+
+tasmota.add_cmd('SetResidencetime', set_residencetime)
+
+def set_hacctime(cmd, idx, payload, payload_json)
+  var ctl = "83"
+  var cmw = "0F"
+  var val = "0F"
+  if int(payload) >= 0 || int(payload) < 301
+    val = f"{payload:.2i}"
+  else
+    cmw = "8F"
+    log("MicR: Set fall time in seconds. Accepted value range is 5 - 180. No payload shows current configuration")
+  end
+  radar.send(ctl,cmw,val)
+  tasmota.resp_cmnd_done()
+end
+
+tasmota.add_cmd('SetResidencetime', set_residencetime)
+
 tasmota.add_rule("system#boot", /-> radar.restart() ) # set rule to restart radar on system boot in order to populate sensors
+radar.get_version()

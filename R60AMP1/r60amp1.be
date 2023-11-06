@@ -155,7 +155,7 @@ class micradar : Driver
   end
   
   def split_payload(b)
-    var ret = {}
+    var ret = []
     var s = size(b)   
     var i = s-2   # start from last-1
     while i > 0

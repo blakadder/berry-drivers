@@ -238,7 +238,7 @@ class micradar : Driver
   end
   
   def split_payload(b)
-    var ret = {}
+    var ret = []
     var s = size(b)   
     var i = s-2   # start from last-1
     while i > 0
@@ -335,10 +335,10 @@ class micradar : Driver
     result.insert(cw,val)
     # print("Parsed message:", result)
     # check if word exists in buffer then update the value if needed, won't publish anything if the value doesn't change
-    if self.buffer.find(cw) != nil 
-      if self.buffer[cw].find(field) != data
-        self.buffer[cw].setitem(field,data)
-        # print(f"Buffer update {field} with {data}")  
+    if self.buffer.find(a1) != nil 
+      if self.buffer[a1].find(a2) != data
+        self.buffer[a1].setitem(a2,data)
+        print(f"Buffer update {a1}: {a2} with {data}")  
         var pubtopic = "tele/" + topic + "/SENSOR"
         var mp = f"{{\"{self.sensorname}\":{json.dump(result)}}}"
         mqtt.publish(pubtopic, mp, false)

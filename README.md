@@ -6,7 +6,8 @@ Central repository for [Berry Tasmota](https://tasmota.github.io/docs/Berry/) dr
 
 ## Table of contents
 
-* [MicRadar R24D](https://github.com/blakadder/berry-drivers/blob/main/R24D) 24Ghz mmWave presence sensor
+* [MicRadar R24DVD1](blob/main/R24D) 24Ghz mmWave presence sensor
+* [MicRadar R24BBD1](blob/main/R24BBD1) 24Ghz mmWave sleep and breathing sensor
+* [MicRadar R60AMP1](blob/main/R60AMP1) 60Ghz mmWave multi-person trajectory radar
 * MicRadar R60B 60Ghz mmWave presence, sleep, breathing and heart rate sensor
-* [MicRadar R60AMP1](https://github.com/blakadder/berry-drivers/blob/main/R60AMP1) 60Ghz multi-person trajectory radar
 * Hi-Link LD2411S 24Ghz mmWave presence sensor

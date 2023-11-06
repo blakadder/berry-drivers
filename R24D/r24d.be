@@ -14,8 +14,10 @@ class micradar : Driver
   static sensorname = "R24DVD1"
   static buffer = {}
   static cfg_buffer = {}
+  static op_buffer = {}
   static header = bytes("5359")
   static endframe = "5443"
+  static opbool
 
   # tables of values and their names, edit to translate to another language
 
@@ -138,22 +140,31 @@ class micradar : Driver
       "name": "Open Function",
       "word": {
         0x00: { "name": "Switch",
-                "properties": micradar.wonoff },
+                "properties": micradar.wonoff,
+                "config": true },
         0x01: { "name": "Report",
-                "properties": ["Static Energy", "Static Distance", "Motion Energy", "Motion Distance", "Motion Speed"] },
+                "properties": ["Static Energy", "Static Distance", "Motion Energy", "Motion Distance", "Movement Speed"] },
+        0x06: { "name": "Motion",
+                "properties": micradar.wmovement },
+        0x07: { "name": "Body Movement Parameter" },
+        0x08: { "name": "Presence Energy Threshold" },
+        0x09: { "name": "Motion Amplitude Trigger Threshold",
+        "config": true },
+        0x0A: { "name": "Presence Distance",
+        "config": true },
+        0x0B: { "name": "Motion Distance",
+        "config": true },
+        0x0C: { "name": "Motion Trigger Time",
+        "config": true },
+        0x0C: { "name": "Motion to Rest Time",
+        "config": true },
+        0x0D: { "name": "Unoccupied State Time",
+        "config": true }
               }
           },
       }
 
   var ser  # create serial port object
-
-  # intialize the serial port, if unspecified Tx/Rx are GPIO 1/3
-  def init(tx, rx)
-    if !tx   tx = gpio.pin(gpio.TXD) end
-    if !rx   rx = gpio.pin(gpio.RXD) end
-    self.ser = serial(rx, tx, 115200, serial.SERIAL_8N1)
-    tasmota.add_driver(self)
-    end
 
   def write2buffer(l, target)
     target.insert(l.find("name"),l.find("properties") != nil ? l["properties"][0x00] : 0)
@@ -177,11 +188,42 @@ class micradar : Driver
             self.write2buffer(l, self.cfg_buffer[self.word[0x05]["name"]])            
           else
             self.write2buffer(l, self.buffer[self.word[k]["name"]])
-         end
-        end
-      end 
+          end
+        end 
+      end
     end
-  end  
+  end
+
+  # def op_buffer_init()
+  #   for l : self.word[0x08]["word"].keys()
+  #     if k == 0x05
+  #     self.cfg_buffer.insert(self.word[k].find("name"),{})
+  #       for l : self.word[k]["word"]
+  #         self.write2buffer(l, self.cfg_buffer[self.word[k]["name"]])
+  #       end
+  #     end
+  #   end
+  #   for k : self.word.keys()
+  #     if k > 127
+  #       self.buffer.insert(self.word[k].find("name"),{})
+  #       for l : self.word[k]["word"]
+  #         if l.find("config") != nil
+  #           self.write2buffer(l, self.cfg_buffer[self.word[0x05]["name"]])            
+  #         else
+  #           self.write2buffer(l, self.buffer[self.word[k]["name"]])
+  #         end
+  #       end 
+  #     end
+  #   end
+  # end  
+
+  # intialize the serial port, if unspecified Tx/Rx are GPIO 1/3
+  def init(tx, rx)
+    if !tx   tx = gpio.pin(gpio.TXD) end
+    if !rx   rx = gpio.pin(gpio.RXD) end
+    self.ser = serial(rx, tx, 115200, serial.SERIAL_8N1)
+    tasmota.add_driver(self)
+    end
 
   def restart()
     self.ser.write(self.encode("01", "02", "0F"))
@@ -194,7 +236,7 @@ class micradar : Driver
   end
   
   def split_payload(b)
-    var ret = {}
+    var ret = []
     var s = size(b)   
     var i = s-2   # start from last-1
     while i > 0
@@ -268,6 +310,7 @@ class micradar : Driver
 
 # grab options so the configuration buffer gets updated, triggered on init done message  
   def get_config()
+    self.send("08","00","0F")
     self.send("05","87","0F")
     self.send("05","88","0F")
     self.send("80","8A","0F")
@@ -290,10 +333,10 @@ class micradar : Driver
     result.insert(cw,val)
     # print("Parsed message:", result)
     # check if word exists in buffer then update the value if needed, won't publish anything if the value doesn't change
-    if self.buffer.find(cw) != nil 
-      if self.buffer[cw].find(field) != data
-        self.buffer[cw].setitem(field,data)
-        # print(f"Buffer update {field} with {data}")  
+    if self.buffer.find(a1) != nil 
+      if self.buffer[a1].find(a2) != data
+        self.buffer[a1].setitem(a2,data)
+        print(f"Buffer update {a1}: {a2} with {data}")  
         var pubtopic = "tele/" + topic + "/SENSOR"
         var mp = f"{{\"{self.sensorname}\":{json.dump(result)}}}"
         mqtt.publish(pubtopic, mp, false)
@@ -324,6 +367,38 @@ class micradar : Driver
     end  
   end
 
+  def calc_distance(d)
+    d = real(d)*0.5 # multiplier 50 because distance is in 0.5m increments 
+    return d
+  end
+
+  def parse_openprotocol(msg)
+    # 0: 1B Presence energy value
+    # 1: 1B Static distance
+    # 2: 1B Motion energy
+    # 3: 1B Movement distance
+    # 4: 1B Speed information
+    var field   = self.id_name(msg)
+    var cw      = self.id_cw(msg)
+    var data = []
+    var result = {}
+      for i:6..5+msg[5]
+       data.push(msg.get(i,1)) # push current iteration to list
+    end
+    data.setitem(1,self.calc_distance(data[1])) # calculate static distance
+    data.setitem(3,self.calc_distance(data[3])) # calculate movement distance
+    data.setitem(4,data[4] == 0 ? 0 : self.calc_distance(data[4]-10)) # calculate movement distance
+    for i : 0 .. size(data)-1
+      result.insert(self.word[msg[2]]["word"][msg[3]]["properties"][i],data[i])
+    end
+    # print("OP result",result)    
+    micradar.op_buffer = result
+    self.publish2log(json.dump(result), 2)
+    var pubtopic = "tele/" + topic + "/OPENPROTOCOL"
+
+    mqtt.publish(pubtopic, json.dump(result), false)
+  end
+
   # read serial port
   def every_50ms()
     if self.ser.available() > 0
@@ -350,7 +425,13 @@ class micradar : Driver
                   self.get_config()
                 end
               elif msg[2] == 0x08 # Open reporting
-              print("Open report received", msg)
+                print("Open report received", msg)
+                  if msg[5] == 0x05
+                    self.parse_openprotocol(msg)
+                  if msg[3] == 0x00 self.opbool = msg[6] end
+                    else
+                    self.parse_message(msg)
+                  end
               else
                 self.parse_message(msg)
               end

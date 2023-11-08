@@ -154,7 +154,7 @@ class micradar : Driver
             0x00: { "name": "Awake" },
             0x01: { "name": "Light sleep" },
             0x02: { "name": "Deep sleep" },
-            0x03: { "name": "Not in datasheet" },
+            0x03: { "name": "Out of bed" },
                 }
               },
         0x05: { 
